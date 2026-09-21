@@ -1,0 +1,53 @@
+{
+  "name": "dsh-blue-fat-fish",
+  "version": "1.0.0",
+  "private": true,
+  "description": "蓝色大肥鱼 · DSH 深海皮肤：令牌层 + 背景两层 + 侧栏大字标开关 + 状态文案轮播的常驻客户端插件",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node build.mjs --check",
+    "test": "node test/smoke.mjs"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "theme",
+    "skin",
+    "whale"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qaz040619/dsh-bluefatfish.git"
+  },
+  "homepage": "https://github.com/qaz040619/dsh-bluefatfish#readme",
+  "bugs": {
+    "url": "https://github.com/qaz040619/dsh-bluefatfish/issues"
+  },
+  "author": "qaz040619",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  }
+}

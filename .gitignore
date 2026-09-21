@@ -1,0 +1,15 @@
+# 依赖与构建产物
+node_modules/
+
+# 打包出来的分发包（别人的机器上用不着，也不该进仓库）
+*.tgz
+*.zip
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# 注意：lib/ 必须提交 —— 别人的 DSH 装的是仓库里这份构建产物，
+# 安装时 pnpm 默认不跑构建脚本（pnpm ≥10 会拦 prepare），少了它就装不起来。

@@ -1,0 +1,11 @@
+# dsh-blue-fat-fish bundle 层：插入插件行。
+#
+# 本包被列进 profile 的 dsh.profile.bundles 后，DSH 会读取本补丁层，
+# 把下面这条 entry 插进根条目表 —— 于是插件的 host 半侧被加载，
+# client-modules 又能扫描到它声明的 dsh.client，把 ./client 发给浏览器。
+#
+# 必须由包自己插自己：本插件只声明 dsh.client、没有别的 bundle 依赖，
+# 而 dsh.profile.bundles 里的包得在自己的 dsh.bundle.patch 层里声明自己的 entry。
+- insert:
+    - id: dsh-blue-fat-fish
+      name: dsh-blue-fat-fish

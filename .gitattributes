@@ -1,0 +1,13 @@
+# 换行与二进制归属：跨平台 clone 后不能改变这些文件的字节
+* text=auto eol=lf
+
+# 构建产物必须逐字节保持原样（浏览器读的就是它，改一个换行就换了哈希）
+lib/client.js -text
+
+# 图片按二进制处理，别做任何转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.7z binary
+*.tgz binary

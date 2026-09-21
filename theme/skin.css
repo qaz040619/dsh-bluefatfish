@@ -1,0 +1,547 @@
+/* ============================================================================
+   蓝色大肥鱼 · 深海皮肤
+   所有 bff-* 类都属于本插件自己创建的节点；产品自身的外观由 theme.json
+   里的 --dsw-* 令牌驱动，这里不碰产品的 DOM 结构。
+   ========================================================================= */
+
+/* ---------------------------------------------------------------- 背景
+   --bff-img 由插件注入（base64 data URL），--bff-vis 是「海水浓度」滑块。
+   滑块越高 = 海越浓 = 纱越薄 = 背景图越清楚。改这里的常数不需要重定义
+   插件，点面板上的刷新按钮即可。
+   ---------------------------------------------------------------------- */
+
+html { background-color: rgb(216 238 255 / var(--bff-on, 1)); }
+html:has(body[data-ds-dark-theme]) { background-color: rgb(6 24 47 / var(--bff-on, 1)); }
+
+/* 默认值放在 :root，插件注入的 body{--bff-vis/--bff-on:…} 才能覆盖它。
+   --bff-on 是总开关：组件样式无条件生效（关掉皮肤时我自己的按钮也得有样式），
+   但背景那几层要跟着它归零。 */
+:root { --bff-vis: 0.62; --bff-on: 1; }
+
+/* body 自身不铺背景：让出画布层给下面两个伪元素。 */
+body { background: transparent; }
+
+/* 第一层 = 背景图本身。单独一层是为了能给它加饱和度/对比增益 ——
+   这是"看得见"的关键：只压纱不加增益，画面会一直是灰蒙蒙的。 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image: var(--bff-img, none);
+  background-size: cover;
+  background-position: center 32%;
+  background-repeat: no-repeat;
+  opacity: var(--bff-img-alpha, 0.55);
+  filter: saturate(1.12) contrast(0.94) brightness(1.04);
+  transform: translateZ(0);
+}
+
+/* 第二层 = 海水纱。压在图上、内容之下。亮色用偏冷的蓝而不是白，
+   否则等于在一张亮画上又盖一层白，画面会被漂白。 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: rgb(226 244 255 / var(--bff-veil-b));
+  background-image:
+    radial-gradient(74% 50% at 15% 3%, rgb(255 236 176 / var(--bff-glow)) 0%, rgb(255 244 214 / 0) 60%),
+    linear-gradient(175deg, rgb(214 238 255 / var(--bff-veil-a)) 0%, rgb(132 196 244 / var(--bff-veil-b)) 100%);
+  background-size: cover, cover;
+  background-position: 15% 3%, center;
+  background-repeat: no-repeat, no-repeat;
+}
+
+/* 滑块映射到更浓的一档：默认（50%）也要"一眼看得出来"。 */
+body {
+  --bff-eff: min(1, calc(0.70 + var(--bff-vis) * 0.50));
+  /* 背景图自己的浓度：滑块越高图越实。默认 50% → 0.55，明显退到后面。 */
+  --bff-img-alpha: calc(var(--bff-on) * (0.24 + var(--bff-vis) * 0.62));
+  --bff-veil-a: calc(var(--bff-on) * (0.005 + (1 - var(--bff-eff)) * 0.14));
+  --bff-veil-b: calc(var(--bff-on) * (0.010 + (1 - var(--bff-eff)) * 0.18));
+  --bff-glow: calc(var(--bff-on) * (0.18 + var(--bff-eff) * 0.34));
+}
+
+body[data-ds-dark-theme] {
+  --bff-veil-a: calc(var(--bff-on) * (0.24 + (1 - var(--bff-eff)) * 0.40));
+  --bff-veil-b: calc(var(--bff-on) * (0.30 + (1 - var(--bff-eff)) * 0.40));
+}
+body[data-ds-dark-theme]::after {
+  background-color: rgb(4 13 27 / var(--bff-veil-b));
+  background-image:
+    radial-gradient(74% 50% at 15% 3%, rgb(255 226 160 / calc(var(--bff-glow) * 0.55)) 0%, rgb(255 226 160 / 0) 58%),
+    linear-gradient(175deg, rgb(3 12 26 / var(--bff-veil-a)) 0%, rgb(5 20 42 / var(--bff-veil-b)) 100%);
+}
+
+/* ---------------------------------------------------------------- 氛围层 */
+
+.bff-ambience {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  color: #8fd3f4;
+}
+body[data-ds-dark-theme] .bff-ambience { color: #4fa8e8; }
+
+.bff-rays {
+  position: absolute;
+  top: -14vh;
+  left: -12vw;
+  width: 64vw;
+  height: 64vw;
+  max-width: 900px;
+  max-height: 900px;
+  opacity: 0.2;
+}
+body[data-ds-dark-theme] .bff-rays { opacity: 0.13; }
+.bff-rays svg { width: 100%; height: 100%; display: block; }
+
+.bff-rays-spin {
+  transform-origin: 200px 200px;
+  animation: bff-spin 180s linear infinite;
+}
+@keyframes bff-spin { to { transform: rotate(360deg); } }
+
+/* 侧栏吉祥物水印。放在氛围层（插件自己的元素）上而不是背景层里 ——
+   背景层在侧栏底下，蓝贴纸压蓝侧栏是看不见的。 */
+.bff-ambience::after {
+  content: "";
+  position: absolute;
+  left: -26px;
+  top: 43%;
+  width: 268px;
+  height: 268px;
+  background: var(--bff-mark, none) center / contain no-repeat;
+  opacity: 0.16;
+  pointer-events: none;
+}
+body[data-ds-dark-theme] .bff-ambience::after { opacity: 0.12; }
+.bff-silhouette {
+  position: absolute;
+  right: -9vw;
+  top: 1vh;
+  width: 26vw;
+  max-width: 360px;
+  opacity: 0.07;
+}
+body[data-ds-dark-theme] .bff-silhouette { opacity: 0.09; }
+
+.bff-bubbles { position: absolute; inset: 0; }
+.bff-bubble {
+  position: absolute;
+  bottom: -14vh;
+  display: block;
+  color: currentColor;
+  opacity: 0;
+  animation-name: bff-rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.bff-bubble svg { width: 100%; height: 100%; display: block; }
+
+@keyframes bff-rise {
+  0%   { transform: translate3d(0, 10vh, 0) scale(0.70); opacity: 0; }
+  10%  { opacity: 0.78; }
+  50%  { transform: translate3d(1.6vw, -45vh, 0) scale(0.95); opacity: 0.62; }
+  90%  { opacity: 0.42; }
+  100% { transform: translate3d(-1.2vw, -118vh, 0) scale(1.08); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bff-rays-spin { animation: none; }
+  .bff-bubble { animation: none; opacity: 0.28; }
+}
+
+/* ------------------------------------------------------- 侧栏皮肤入口 */
+
+/* .bff-entry* 这一族已经没用了：入口并到了左上角大字标（点它开关皮肤），
+   sidebar.footer.action 的注册已在 v8 从插件里摘掉。留着待清理。 */
+.bff-entry:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(79, 168, 232, 0.14));
+  color: var(--dsw-alias-label-primary, #e9f5ff);
+}
+.bff-entry:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary, #4fa8e8);
+  outline-offset: 1px;
+}
+.bff-entry.is-active {
+  background: var(--dsw-alias-button-ghost-active-fill, rgba(79, 168, 232, 0.18));
+  color: var(--dsw-alias-label-primary, #e9f5ff);
+}
+.bff-entry-mark { display: inline-flex; flex: none; align-items: center; justify-content: center; }
+.bff-entry-label { overflow: hidden; text-overflow: ellipsis; }
+
+.bff-brand-mark,
+.bff-hero-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.bff-whale { display: block; filter: drop-shadow(0 2px 6px rgba(20, 70, 130, 0.28)); }
+
+/* 鲸鱼娘贴纸（抠好白底，见 assets/whale-girl.png） */
+.bff-sticker {
+  display: block;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 3px 9px rgba(18, 62, 118, 0.26));
+}
+body[data-ds-dark-theme] .bff-sticker { filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.42)); }
+
+/* 侧栏大字标（参考图里那种 wordmark） */
+.bff-wordmark {
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  background: linear-gradient(120deg, #0e3a66 0%, #2477c4 55%, #0e3a66 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+body[data-ds-dark-theme] .bff-wordmark {
+  background: linear-gradient(120deg, #eaf6ff 0%, #8fd3f4 55%, #eaf6ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* ------------------------------------------- 插件自有 UI 的明暗两套变量 */
+
+.bff-panel,
+.bff-page {
+  --bff-fg: #0c2949;
+  --bff-fg2: #3a6489;
+  --bff-fg3: #6e97ba;
+  --bff-line: rgba(36, 119, 196, 0.22);
+  --bff-surf: rgba(255, 255, 255, 0.94);
+  --bff-surf2: rgba(232, 246, 255, 0.80);
+  --bff-accent: #2477c4;
+  --bff-glowsoft: rgba(36, 119, 196, 0.12);
+  --bff-shadow: 0 20px 48px rgba(18, 58, 104, 0.22);
+}
+body[data-ds-dark-theme] .bff-panel,
+body[data-ds-dark-theme] .bff-page {
+  --bff-fg: #e9f5ff;
+  --bff-fg2: #a9cbec;
+  --bff-fg3: #7fa8d2;
+  --bff-line: rgba(125, 195, 255, 0.26);
+  --bff-surf: rgba(8, 24, 45, 0.95);
+  --bff-surf2: rgba(16, 42, 74, 0.66);
+  --bff-accent: #4fa8e8;
+  --bff-glowsoft: rgba(79, 168, 232, 0.16);
+  --bff-shadow: 0 22px 56px rgba(2, 10, 22, 0.62);
+}
+
+/* ------------------------------------------------------------ 浮层面板 */
+
+.bff-panel {
+  position: fixed;
+  left: 12px;
+  bottom: 86px;
+  z-index: 6;
+  width: 330px;
+  pointer-events: auto;
+  overflow: hidden;
+  color: var(--bff-fg);
+  font-size: 13px;
+  line-height: 1.5;
+  background: linear-gradient(180deg, var(--bff-surf), var(--bff-surf2));
+  border: 1px solid var(--bff-line);
+  border-radius: 18px;
+  box-shadow: var(--bff-shadow);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  animation: bff-pop 0.18s ease-out;
+}
+@keyframes bff-pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.bff-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--bff-line);
+  background: linear-gradient(180deg, rgba(143, 211, 244, 0.14), transparent);
+}
+.bff-panel-title { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.bff-panel-title strong { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; color: var(--bff-fg); }
+.bff-panel-title span { font-size: 11px; color: var(--bff-fg3); }
+
+.bff-icon-btn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--bff-fg3);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.bff-icon-btn:hover { background: var(--bff-glowsoft); color: var(--bff-fg); }
+.bff-icon-btn:focus-visible { outline: 2px solid var(--bff-accent); outline-offset: 1px; }
+
+.bff-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 56vh;
+  overflow-y: auto;
+  padding: 12px 14px;
+}
+.bff-panel-foot {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border-top: 1px solid var(--bff-line);
+  color: var(--bff-fg3);
+  font-size: 11px;
+}
+
+/* -------------------------------------------------------------- 控件 */
+
+.bff-controls { display: flex; flex-direction: column; gap: 12px; }
+
+.bff-switch {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.bff-switch-track {
+  grid-row: 1 / 3;
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 22px;
+  border: 1px solid var(--bff-line);
+  border-radius: 11px;
+  background: var(--bff-glowsoft);
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.bff-switch.is-on .bff-switch-track {
+  background: linear-gradient(135deg, #5aa6e2, #2477c4);
+  border-color: transparent;
+}
+.bff-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  color: #2477c4;
+  box-shadow: 0 1px 3px rgba(8, 30, 60, 0.35);
+  transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.bff-switch.is-on .bff-switch-thumb { transform: translateX(16px); }
+.bff-switch-text { font-size: 13px; color: var(--bff-fg); }
+.bff-switch .bff-hint { grid-column: 2; }
+.bff-switch:focus-visible .bff-switch-track { outline: 2px solid var(--bff-accent); outline-offset: 2px; }
+
+.bff-hint { font-size: 11px; line-height: 1.45; color: var(--bff-fg3); }
+
+.bff-row-icon { display: inline-flex; flex: none; margin-top: 2px; color: var(--bff-accent); }
+.bff-row-body { display: flex; flex: 1; flex-direction: column; gap: 6px; min-width: 0; }
+
+.bff-slider-row { display: flex; gap: 10px; align-items: flex-start; transition: opacity 0.18s ease; }
+.bff-slider-row.is-off { opacity: 0.45; }
+.bff-slider-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.bff-slider-label { font-size: 13px; color: var(--bff-fg); }
+.bff-slider-value { font-size: 12px; color: var(--bff-accent); font-variant-numeric: tabular-nums; }
+
+.bff-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.bff-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border: 1px solid var(--bff-line);
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--bff-accent), rgba(143, 211, 244, 0.45));
+}
+.bff-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 2px solid var(--bff-accent);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(8, 30, 60, 0.35);
+}
+.bff-range:focus-visible { outline: 2px solid var(--bff-accent); outline-offset: 3px; border-radius: 4px; }
+.bff-range::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--bff-accent), rgba(143, 211, 244, 0.45));
+}
+.bff-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--bff-accent);
+  border-radius: 50%;
+  background: #fff;
+}
+
+.bff-error { margin: 0; color: #ff8a8a; font-size: 11px; }
+.bff-loading { opacity: 0.8; }
+
+/* -------------------------------------------------------------- 色板 */
+
+.bff-palette { display: flex; flex-wrap: wrap; gap: 6px; }
+.bff-swatch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 4px;
+  border: 1px solid var(--bff-line);
+  border-radius: 999px;
+  background: var(--bff-surf2);
+}
+.bff-swatch-chip {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(8, 30, 60, 0.25);
+}
+.bff-swatch-name { font-size: 11px; color: var(--bff-fg2); }
+.bff-swatch-hex { font-size: 10px; color: var(--bff-fg3); font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------ 设置页 */
+
+.bff-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 2px 28px;
+  color: var(--bff-fg);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.bff-hero {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 22px;
+  border: 1px solid var(--bff-line);
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(143, 211, 244, 0.22), rgba(36, 119, 196, 0.10) 55%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.bff-hero-art { display: flex; flex: none; flex-direction: column; align-items: center; gap: 2px; }
+.bff-hero-wave { width: 150px; color: var(--bff-accent); opacity: 0.5; }
+.bff-hero-text { min-width: 0; }
+.bff-hero-text h2 { margin: 0 0 6px; font-size: 22px; font-weight: 650; letter-spacing: 0.04em; color: var(--bff-fg); }
+.bff-hero-text p { margin: 0 0 12px; color: var(--bff-fg2); font-size: 13px; }
+.bff-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.bff-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--bff-line);
+  border-radius: 999px;
+  background: var(--bff-surf2);
+  color: var(--bff-fg2);
+  font-size: 11px;
+}
+.bff-badge svg { color: var(--bff-accent); }
+
+.bff-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--bff-line);
+  border-radius: 16px;
+  background: var(--bff-surf);
+}
+.bff-card > header { display: flex; align-items: center; gap: 8px; color: var(--bff-fg); }
+.bff-card > header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.bff-card > header svg { color: var(--bff-accent); }
+.bff-state {
+  margin-left: auto;
+  padding: 2px 9px;
+  border: 1px solid var(--bff-line);
+  border-radius: 999px;
+  color: var(--bff-fg3);
+  font-size: 11px;
+}
+.bff-note { margin: 0; color: var(--bff-fg2); font-size: 12.5px; line-height: 1.75; }
+.bff-page .bff-controls { max-width: 520px; }
+
+/* ------------------------------------------------------------ 输出框
+   参考图那种"有色边框 + 大圆角 + 实底 + 外发光"的卡片。
+   data-composer-card 是产品自己写在卡片上的稳定属性，不是猜的哈希类名。 */
+body { --bff-composer-bg: rgb(255 255 255 / 0.90); }
+body[data-ds-dark-theme] { --bff-composer-bg: rgb(9 28 52 / 0.92); }
+
+[data-composer-card] {
+  border: 1.5px solid var(--dsw-alias-button-info-fill, #2477c4) !important;
+  border-radius: 18px !important;
+  background: var(--bff-composer-bg) !important;
+  box-shadow: 0 12px 30px rgb(16 58 112 / 0.16), 0 0 0 4px rgb(79 168 232 / 0.10) !important;
+}
+body[data-ds-dark-theme] [data-composer-card] {
+  box-shadow: 0 14px 34px rgb(0 0 0 / 0.42), 0 0 0 4px rgb(79 168 232 / 0.12) !important;
+}
+[data-composer-card]:focus-within {
+  border-color: var(--dsw-alias-brand-primary, #2477c4) !important;
+  box-shadow: 0 12px 30px rgb(16 58 112 / 0.20), 0 0 0 5px rgb(79 168 232 / 0.20) !important;
+}
+
+/* 标记位别被容器裁掉 */
+.bff-entry-mark,
+.bff-brand-mark,
+.bff-hero-mark { overflow: visible; }
+.bff-sticker { max-width: none; max-height: none; }
+
+/* 顶部大字标兼皮肤开关 */
+.bff-wordmark { cursor: pointer; transition: opacity 0.18s ease, filter 0.18s ease; }
+.bff-wordmark.is-off { opacity: 0.42; filter: grayscale(1); }
+.bff-wordmark:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary, #2478c4); outline-offset: 3px; border-radius: 4px; }
+
+/* ------------------------------------------------------------ 选中色 */
+
+.bff-panel ::selection,
+.bff-page ::selection { background: rgba(79, 168, 232, 0.32); color: inherit; }
+::selection { background: rgb(79 168 232 / 0.30); color: inherit; }
+body[data-ds-dark-theme] ::selection { background: rgb(79 168 232 / 0.34); color: #e9f5ff; }
