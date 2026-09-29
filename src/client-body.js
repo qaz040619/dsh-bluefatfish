@@ -23,14 +23,21 @@ const TAG_PLUGIN = 'dsh-blue-fat-fish'
 const CHAT_NS = 'chat'
 const WHALE_LANG = 'zh-whale'
 const WHALE_LABEL = '鲸鱼语 · 蓝色大肥鱼'
-/* 鲸鱼语：产品那一行「深度求索中...」的状态文案（chat 命名空间的 chat.deepDiving，
-   一轮对话进行中显示在对话区顶部的那条 status）换成本包这套台词，每 6 秒轮播一条。
-   —— 这里**只写要覆盖的那一个键**：locale 规定一个命名空间一门语言只有一个主人，
+/* 鲸鱼语：产品那一行「深度求索中...」的状态文案（chat 命名空间，一轮对话进行中显示在
+   对话区底部的那条 status）换成本包这套台词，每 6 秒轮播一条。
+   —— 这里**只写要覆盖的键**：locale 规定一个命名空间一门语言只有一个主人，
    直接改 chat 的 zh 字典会被拒（locale namespace "chat" already has locale "zh"），
    所以另开一门回退中文的语言 zh-whale，其余文案沿回退链落到中文。
-   注意：思考行标题（message.think，默认「思考」）**不再覆写**，保持产品原样。 */
+   注意：思考行标题（message.think，默认「思考」）**不再覆写**，保持产品原样。
+
+   ⚠️ 两个键都要写：dsh 0.2.0 起产品把这句话拆成两条 ——
+     起始阶段用 chat.deepDiving（"深度求索中..."），
+     一旦这一轮有了开始时间就换成 chat.deepDivingFor（"深度求索中，用时 {duration}..."）。
+   只盖前者的话，实际看到的几乎永远是后者，症状就是"文案没换、还是深度求索中"。
+   （0.1.x 没有 deepDivingFor 这个键，多注册一个键也无害 —— 没人读它。） */
 const DIVE_LINES = ['正在偷吃 token 白饭中……', '碗里的白饭还没扒完，等我一下', '才不是在摸鱼，是在深度思考！', '别催了别催了，已经在想了', '绝对不是偷懒，这叫战略性发呆', '蓝色大肥鱼正在运转中……', '虽然看起来在发呆，但脑子在动', '一只吃白饭的鲸鱼正在努力中', '正在把任务层层外包中，稍等', '编译跑着呢，我先眯一会儿']
 const DIVE_KEY = 'chat.deepDiving'
+const DIVE_KEY_TIMED = 'chat.deepDivingFor'
 const DIVE_INTERVAL_MS = 6000
 
 /** 构建期内联：{ bg, full, head, css, tokens }（都是 data URL / 原文） */
@@ -190,7 +197,10 @@ function installWhaleLocale(ctx) {
     if (dictDisposer) { try { dictDisposer() } catch (error) { void error } dictDisposer = null }
     const text = DIVE_LINES[line % DIVE_LINES.length]
     line += 1
-    try { dictDisposer = locale.register(CHAT_NS, WHALE_LANG, { [DIVE_KEY]: text }) }
+    /* 两条键一起写：起始态 + 0.2.0 的带用时态（{duration} 由 locale 的 translate 替换） */
+    const dict = { [DIVE_KEY]: text }
+    dict[DIVE_KEY_TIMED] = text + ' · {duration}'
+    try { dictDisposer = locale.register(CHAT_NS, WHALE_LANG, dict) }
     catch (error) { dictDisposer = null; console.error('[blue-fat-fish] 写入鲸鱼语字典失败', error) }
   }
   function ensure(attempt) {

@@ -69,6 +69,23 @@ body[data-ds-dark-theme] {
   --bff-veil-a: calc(var(--bff-on) * (0.24 + (1 - var(--bff-eff)) * 0.40));
   --bff-veil-b: calc(var(--bff-on) * (0.30 + (1 - var(--bff-eff)) * 0.40));
 }
+
+/* ------------------------------------------------- 桌面端（Electron）的整窗底板
+   产品给 AppFrame 的底色本来是 --dsw-alias-bg-base（我们设成 ~10% 透明度，所以
+   背景图能透出来）。但在桌面端它多了一条 Windows 标题栏专属规则：
+
+     html[data-windows-titlebar] .ZTP-Xa_frame { background: var(--dsw-specific-sidebar-fill) }
+
+   —— 拿"侧栏那条蓝渐变"（70~86% 不透明）当整窗底板。那层叠在 body::before
+   （背景图，z-index -2）之上，结果就是整窗一片蓝、图被压住。
+
+   这里把底板还原成 bg-base：侧栏自己有同一条渐变的规则，不受影响；顶部那条
+   拖动区用的是 .ZTP-Xa_frame::before，也不受影响。
+   选择器不写产品的哈希类名（ZTP-Xa 每个版本都会变），改用结构兜底：
+   "直接子元素里含侧栏列"的那一层就是 AppFrame。 */
+html[data-windows-titlebar] :has(> [class*="_sidebarCol"]) {
+  background: var(--dsw-alias-bg-base);
+}
 body[data-ds-dark-theme]::after {
   background-color: rgb(4 13 27 / var(--bff-veil-b));
   background-image:

@@ -144,6 +144,7 @@ check('令牌层用主题服务挂载', seen.tokens !== null && seen.tokens.sour
 check('令牌是明暗双值', seen.tokens && Object.values(seen.tokens.tokens).every((v) => typeof v.light === 'string' && typeof v.dark === 'string'))
 check('鲸鱼语语言包已注册', seen.languages.length === 1 && seen.languages[0].id === 'zh-whale' && seen.languages[0].fallback === 'zh', JSON.stringify(seen.languages[0]))
 check('状态文案写进 chat 命名空间的 chat.deepDiving', seen.dicts.length >= 1 && seen.dicts[0].ns === 'chat' && typeof seen.dicts[0].dict['chat.deepDiving'] === 'string', seen.dicts[0] && JSON.stringify(seen.dicts[0].dict))
+check('同时覆盖 0.2.0 的带用时变体 chat.deepDivingFor', seen.dicts.length >= 1 && seen.dicts.every((d) => typeof d.dict['chat.deepDivingFor'] === 'string' && d.dict['chat.deepDivingFor'].includes('{duration}')), seen.dicts[0] && seen.dicts[0].dict['chat.deepDivingFor'])
 check('不再覆写思考行标题 message.think', seen.dicts.every((d) => !('message.think' in d.dict)))
 check('切到了鲸鱼语', seen.locales.includes('zh-whale'), seen.locales.join(','))
 check('监听了语言变化', seen.events.includes('locale/change'))
