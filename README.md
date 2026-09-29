@@ -74,11 +74,14 @@ profile 名按你自己的填（多数人是 `web`，桌面端是 `desktop`）�
 ```bash
 node build.mjs          # 把源码 + 图 + CSS 打成 lib/client.js
 node build.mjs --check  # 只看产物是不是旧的（比对源指纹）
-node test/smoke.mjs     # 冒烟测试（28 项，不用浏览器）
+node test/smoke.mjs     # 冒烟测试（29 项，不用浏览器）
 ```
 
 **改完不用重启也不用刷新**：DSH 自带的 client HMR 每 500 ms 轮询一次 bundle，发现 `lib/client.js` 变了
 就把新版换进浏览器（约半秒生效）。
+
+> 连续热换几次之后，**页面侧**那条热换链偶尔会卡住（表现为"改了没反应"，但宿主其实已经发了新版）。
+> 按一次 **Ctrl+R** 重载页面即可，不用重启应用 —— 实测桌面端连换三版后会卡，重载后立刻跟上。
 
 | 想改什么 | 动哪 |
 | --- | --- |

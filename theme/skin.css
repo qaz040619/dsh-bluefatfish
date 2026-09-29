@@ -92,6 +92,20 @@ html[data-windows-titlebar] :has(> [class*="_sidebarCol"]) {
 html[data-windows-titlebar] :has(> [class*="_sidebarCol"])::before {
   background: transparent;
 }
+
+/* 顶部拖动区让开之后，左上角会出现一个缺口：侧栏正上方那 38px 露的是背景图，
+   侧栏的蓝从它下面才开始 —— 看着就是"左上和左下没接上"。
+
+   修法不是"在旁边补一块同色"，而是让**侧栏自己的盒子**一直顶到窗口最上面：
+   把它上移一条拖动区的高度（margin-top 负值），再用等量 padding 把内容推回原位。
+   内容位置、滚动区域都不变，只是那层渐变底色多铺了 38px —— 一整块连续，压根没有接缝。
+
+   这么做比补丁稳：不用知道侧栏宽度（拖动变宽、折叠成窄条都自动跟随），
+   也不用碰产品别的布局；想"补在别处"还会被侧栏列的 overflow:hidden 裁掉。 */
+html[data-windows-titlebar] [class*="_sidebarCol"] {
+  margin-top: calc(-1 * var(--dsh-windows-titlebar-height, 38px));
+  padding-top: var(--dsh-windows-titlebar-height, 38px);
+}
 body[data-ds-dark-theme]::after {
   background-color: rgb(4 13 27 / var(--bff-veil-b));
   background-image:
