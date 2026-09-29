@@ -126,14 +126,33 @@ window.__ModuleLoader__.load({
 
 ## 兼容性
 
-在 **dsh 0.1.5-rc.2**（`web` profile）上实测通过。皮肤依赖四样随 DSH 版本走的东西：
+两个版本上都实测通过：
+
+| DSH | 环境 | 结果 |
+| --- | --- | --- |
+| **0.1.5-rc.2** | 命令行 `web` profile | 通过 |
+| **0.2.0-rc.1** | 桌面端（Electron） | 通过（下面两条 0.2.0 的适配） |
+
+皮肤依赖四样随 DSH 版本走的东西：
 
 - 客户端基座模块表（`react`）；
 - 四个 slot 座位：`sidebar.brand.mark`、`sidebar.brand.name`、`shell.overlay`、`conversation.hero.brand.mark`；
-- `chat` 命名空间的 `chat.deepDiving` 文案键；
+- `chat` 命名空间的两条状态文案键：`chat.deepDiving` 与 `chat.deepDivingFor`；
 - `theme.overrideTokens`。
 
 版本差太远可能部分失效（最坏情况：背景与配色还在，大字标或状态文案没了）。
+
+**0.2.0 带来的两处差异**（都已适配，写在这里免得别人重踩）：
+
+1. **状态文案拆成了两条键**：起始阶段用 `chat.deepDiving`（「深度求索中...」），
+   一旦这一轮有了开始时间就换成 `chat.deepDivingFor`（「深度求索中，用时 {duration}...」）。
+   只覆写前者的话，实际看到的几乎永远是后者 —— 症状就是"文案没换"。
+2. **桌面端多了一层整窗底板**。Electron 外壳给 Windows 标题栏加了一条规则：
+   `html[data-windows-titlebar] .ZTP-Xa_frame { background: var(--dsw-specific-sidebar-fill) }`
+   —— 拿"侧栏那条渐变"当整窗底色。任何把 `--dsw-specific-sidebar-fill` 设成不透明颜色的皮肤，
+   在桌面端都会看到"图被这层盖住"（我们的背景图在 `body::before`，z-index -2，正好在它下面）。
+   我们的处理是把底板还原成 `--dsw-alias-bg-base`，并且选择器不写产品哈希类名（`ZTP-Xa` 每版都会变），
+   用结构兜底：`html[data-windows-titlebar] :has(> [class*="_sidebarCol"])`。
 
 **给其它插件作者的两个坑**（都是移植时踩出来的）：
 
