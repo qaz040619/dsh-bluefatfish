@@ -1,6 +1,6 @@
 {
   "name": "dsh-blue-fat-fish",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "蓝色大肥鱼 · DSH 深海皮肤：令牌层 + 背景两层 + 侧栏大字标开关 + 状态文案轮播的常驻客户端插件",
   "type": "module",

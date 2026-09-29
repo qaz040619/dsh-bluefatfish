@@ -14,14 +14,18 @@
 dsh plugin --profile web add github:qaz040619/dsh-bluefatfish
 
 # 方式二：下载 Release 里的 tgz 再装
-dsh plugin --profile web add "/你的路径/dsh-blue-fat-fish-1.0.0.tgz"
+dsh plugin --profile web add "/你的路径/dsh-blue-fat-fish-1.0.1.tgz"
 ```
 
 装完 **重启 DSH**。左上角会出现鲸鱼娘贴纸 + 渐变「蓝色大肥鱼」大字标，背景换成海面。
 卸载：`dsh plugin --profile web remove dsh-blue-fat-fish`，再重启。
 
-profile 名按你自己的填（多数人是 `web`）；`dsh plugin` 只是个 pnpm 转发器，它会自己把本包加进
-`dsh.profile.bundles`，不需要手改配置。
+> **桌面端（Electron）卸载时多做一步**：桌面 profile 的 `cordis.patch.yml` 里可能有一条
+> `- id: locale` / `config: preference: zh-whale`（动态插件时代留下的语言偏好）。这门语言由本插件提供，
+> 插件卸了它就成了指向不存在语言的偏好 —— 记得把那条一起删掉。
+
+profile 名按你自己的填（多数人是 `web`，桌面端是 `desktop`）；`dsh plugin` 只是个 pnpm 转发器，
+它会自己把本包加进 `dsh.profile.bundles`，不需要手改配置。
 
 ## 它做了什么
 
@@ -147,12 +151,16 @@ window.__ModuleLoader__.load({
 1. **状态文案拆成了两条键**：起始阶段用 `chat.deepDiving`（「深度求索中...」），
    一旦这一轮有了开始时间就换成 `chat.deepDivingFor`（「深度求索中，用时 {duration}...」）。
    只覆写前者的话，实际看到的几乎永远是后者 —— 症状就是"文案没换"。
-2. **桌面端多了一层整窗底板**。Electron 外壳给 Windows 标题栏加了一条规则：
-   `html[data-windows-titlebar] .ZTP-Xa_frame { background: var(--dsw-specific-sidebar-fill) }`
-   —— 拿"侧栏那条渐变"当整窗底色。任何把 `--dsw-specific-sidebar-fill` 设成不透明颜色的皮肤，
-   在桌面端都会看到"图被这层盖住"（我们的背景图在 `body::before`，z-index -2，正好在它下面）。
-   我们的处理是把底板还原成 `--dsw-alias-bg-base`，并且选择器不写产品哈希类名（`ZTP-Xa` 每版都会变），
-   用结构兜底：`html[data-windows-titlebar] :has(> [class*="_sidebarCol"])`。
+2. **桌面端多了两层整窗底色**。Electron 外壳给 Windows 标题栏加了这两条规则：
+   `html[data-windows-titlebar] .ZTP-Xa_frame`（整窗底板）和它的 `::before`（顶部那条拖动区，
+   高 `--dsh-windows-titlebar-height`），两者都用 `background: var(--dsw-specific-sidebar-fill)`
+   —— 也就是拿"侧栏那条渐变"铺满窗口顶。任何把 `--dsw-specific-sidebar-fill` 设成不透明颜色的皮肤，
+   在桌面端都会看到"图被这层盖住"（我们的背景图在 `body::before`，z-index -2，正好在它下面）：
+   整窗一片蓝，顶部那栏还会因为渐变是半透明的而"透"出背景图，变成发花的水洗色。
+
+   我们的处理是把底板还原成 `--dsw-alias-bg-base`、把顶部拖动区改成透明，让海图从标题栏到内容连成一片。
+   选择器不写产品哈希类名（`ZTP-Xa` 每版都会变），用结构兜底：
+   `html[data-windows-titlebar] :has(> [class*="_sidebarCol"])`。
 
 **给其它插件作者的两个坑**（都是移植时踩出来的）：
 
